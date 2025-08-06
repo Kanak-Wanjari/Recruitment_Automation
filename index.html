@@ -51,7 +51,7 @@
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
 
-    const res = await fetch("https://kanak-mi.app.n8n.cloud/webhook/fc6f2a95-8579-49ca-a401-7767ca6882c3", {
+    const res = await fetch("https://kanak-mi.app.n8n.cloud/webhook-test/fc6f2a95-8579-49ca-a401-7767ca6882c3", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
