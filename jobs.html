@@ -54,7 +54,7 @@ const applyModal = new bootstrap.Modal(document.getElementById('applyModal'));
 async function loadJobs() {
   jobsList.innerHTML = "<p>Loading jobs...</p>";
   try {
-    const res = await fetch("https://kanak-mi.app.n8n.cloud/webhook/get-jobs");
+    const res = await fetch("https://kanak-mi.app.n8n.cloud/webhook-test/get-jobs");
     const jobs = await res.json();
 
     if (!jobs.length) {
@@ -97,7 +97,7 @@ document.getElementById('applyForm').addEventListener('submit', async (e) => {
   const data = Object.fromEntries(formData.entries());
 
   try {
-    const res = await fetch("https://kanak-mi.app.n8n.cloud/webhook/apply-job", {
+    const res = await fetch("https://kanak-mi.app.n8n.cloud/webhook-test/apply-job", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
