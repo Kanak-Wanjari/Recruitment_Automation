@@ -3,41 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Job Portal</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.min.js"></script>
+  <title>Available Jobs</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
 </head>
 <body class="bg-light">
 
 <div class="container mt-5">
   <h2 class="mb-4">Available Jobs</h2>
-  <div id="jobList" class="row"></div>
+  <div id="jobsList" class="row g-4"></div>
 </div>
 
 <!-- Apply Modal -->
-<div class="modal fade" id="applyModal" tabindex="-1" aria-labelledby="applyModalLabel" aria-hidden="true">
+<div class="modal fade" id="applyModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <form id="applyForm">
         <div class="modal-header">
-          <h5 class="modal-title" id="applyModalLabel">Apply for Job</h5>
+          <h5 class="modal-title">Apply for Job</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <input type="hidden" name="job_id" id="job_id" />
+          <input type="hidden" name="job_id" id="job_id">
           <div class="mb-3">
-            <label class="form-label">Your Name</label>
-            <input type="text" name="name" class="form-control" required />
+            <label class="form-label">Full Name</label>
+            <input type="text" name="name" class="form-control" required/>
           </div>
           <div class="mb-3">
-            <label class="form-label">Your Email</label>
-            <input type="email" name="email" class="form-control" required />
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" required/>
           </div>
           <div class="mb-3">
-            <label class="form-label">Paste Your Resume Text</label>
-            <textarea name="resume_text" class="form-control" rows="5" required></textarea>
+            <label class="form-label">Resume URL</label>
+            <input type="url" name="resume_url" class="form-control" required/>
           </div>
-          <div id="applyStatus" class="mt-2"></div>
         </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-primary">Submit Application</button>
@@ -47,69 +45,78 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  const SUPABASE_URL = "https://zkyvovkjvkettddzwkvv.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpreXZvdmtqdmtldHRkZHp3a3Z2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyODczNDAsImV4cCI6MjA2OTg2MzM0MH0.FE3O9_wP7UiPqx3gRQXzJSC46f7yd9RTDLL6WDDjHLQ";
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const jobsList = document.getElementById('jobsList');
+const applyModal = new bootstrap.Modal(document.getElementById('applyModal'));
 
-  async function loadJobs() {
-    const { data: jobs, error } = await supabase.from("jobs").select("*").order("posted_at", { ascending: false });
-    const container = document.getElementById("jobList");
-    if (error) {
-      container.innerHTML = `<div class="alert alert-danger">Failed to load jobs</div>`;
+// Load jobs from n8n
+async function loadJobs() {
+  jobsList.innerHTML = "<p>Loading jobs...</p>";
+  try {
+    const res = await fetch("https://kanak-mi.app.n8n.cloud/webhook/get-jobs");
+    const jobs = await res.json();
+
+    if (!jobs.length) {
+      jobsList.innerHTML = "<p>No jobs available right now.</p>";
       return;
     }
 
-    jobs.forEach(job => {
-      const card = document.createElement("div");
-      card.className = "col-md-6 mb-4";
-      card.innerHTML = `
+    jobsList.innerHTML = jobs.map(job => `
+      <div class="col-md-6">
         <div class="card h-100 shadow-sm">
           <div class="card-body">
             <h5 class="card-title">${job.title}</h5>
-            <p class="card-text">${job.description.substring(0, 200)}...</p>
+            <h6 class="card-subtitle mb-2 text-muted">${job.company}</h6>
+            <p class="card-text">${job.description}</p>
             <p><strong>Skills:</strong> ${job.required_skills}</p>
-            <p><strong>Experience:</strong> ${job.experience} yrs</p>
-            <button class="btn btn-primary" onclick="openApplyModal('${job.job_id}')">Apply</button>
+            <p><strong>Experience:</strong> ${job.experience} years</p>
+            <p><strong>Location:</strong> ${job.location || 'N/A'}</p>
+            <p><strong>Salary:</strong> ${job.salary || 'Not specified'}</p>
+            <button class="btn btn-primary" onclick="openApplyForm('${job.job_id}')">Apply</button>
           </div>
         </div>
-      `;
-      container.appendChild(card);
-    });
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error(err);
+    jobsList.innerHTML = "<p>Error loading jobs.</p>";
   }
+}
 
-  function openApplyModal(jobId) {
-    const modal = new bootstrap.Modal(document.getElementById('applyModal'));
-    document.getElementById('job_id').value = jobId;
-    document.getElementById('applyStatus').innerHTML = '';
-    modal.show();
-  }
+// Open apply modal
+function openApplyForm(job_id) {
+  document.getElementById('job_id').value = job_id;
+  applyModal.show();
+}
 
-  document.getElementById("applyForm").addEventListener("submit", async function (e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const data = Object.fromEntries(formData.entries());
+// Handle application submit
+document.getElementById('applyForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData.entries());
 
-    const res = await fetch("https://kanak-mi.app.n8n.cloud/webhook-test/candidate-apply", {
-      // 🔁 Replace above with actual webhook URL for candidate applications
+  try {
+    const res = await fetch("https://kanak-mi.app.n8n.cloud/webhook/apply-job", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify(data)
     });
 
-    const statusEl = document.getElementById("applyStatus");
     if (res.ok) {
-      statusEl.innerHTML = `<div class="alert alert-success">Application submitted successfully!</div>`;
-      this.reset();
+      alert("Application submitted successfully!");
+      e.target.reset();
+      applyModal.hide();
     } else {
-      statusEl.innerHTML = `<div class="alert alert-danger">Something went wrong. Please try again.</div>`;
+      alert("Something went wrong. Try again!");
     }
-  });
+  } catch (err) {
+    console.error(err);
+    alert("Error submitting application.");
+  }
+});
 
-  // Load jobs on page load
-  loadJobs();
+loadJobs();
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
