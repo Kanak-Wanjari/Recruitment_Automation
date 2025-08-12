@@ -17,7 +17,7 @@
 <div class="modal fade" id="applyModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form id="applyForm">
+      <form id="applyForm" enctype="multipart/form-data">
         <div class="modal-header">
           <h5 class="modal-title">Apply for Job</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -33,9 +33,10 @@
             <input type="email" name="email" class="form-control" required/>
           </div>
           <div class="mb-3">
-            <label class="form-label">Resume URL</label>
-            <input type="url" name="resume_url" class="form-control" required/>
+            <label class="form-label">Resume</label>
+            <input type="file" name="resume" accept=".pdf,.doc,.docx" class="form-control" required/>
           </div>
+          <div id="applyStatus" class="mt-2"></div>
         </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-primary">Submit Application</button>
@@ -49,6 +50,8 @@
 <script>
 const jobsList = document.getElementById('jobsList');
 const applyModal = new bootstrap.Modal(document.getElementById('applyModal'));
+const applyForm = document.getElementById('applyForm');
+const applyStatus = document.getElementById('applyStatus');
 
 // Load jobs from n8n
 async function loadJobs() {
@@ -91,28 +94,28 @@ function openApplyForm(job_id) {
 }
 
 // Handle application submit
-document.getElementById('applyForm').addEventListener('submit', async (e) => {
+applyForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const formData = new FormData(e.target);
-  const data = Object.fromEntries(formData.entries());
+  applyStatus.innerHTML = '';
+  
+  const formData = new FormData(applyForm); // will include job_id, name, email, resume file
 
   try {
     const res = await fetch("https://kanak-mi.app.n8n.cloud/webhook-test/apply-job", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
+      body: formData // no Content-Type header → browser sets multipart/form-data boundary
     });
 
     if (res.ok) {
-      alert("Application submitted successfully!");
-      e.target.reset();
-      applyModal.hide();
+      applyStatus.innerHTML = '<div class="alert alert-success">Application submitted successfully!</div>';
+      applyForm.reset();
+      setTimeout(() => applyModal.hide(), 1000);
     } else {
-      alert("Something went wrong. Try again!");
+      applyStatus.innerHTML = '<div class="alert alert-danger">Something went wrong. Try again!</div>';
     }
   } catch (err) {
     console.error(err);
-    alert("Error submitting application.");
+    applyStatus.innerHTML = '<div class="alert alert-danger">Error submitting application.</div>';
   }
 });
 
